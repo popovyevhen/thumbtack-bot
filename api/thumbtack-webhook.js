@@ -5,24 +5,27 @@ export default async function handler(req, res) {
 
   try {
     const payload = req.body;
-    console.log("1. Данные от Thumbtack:", JSON.stringify(payload));
 
-    const name = payload.customer?.name || payload.contact?.name || 'Неизвестно';
-    const jobType = payload.category || payload.job?.type || 'Неизвестно';
-    const location = payload.location || payload.job?.location || 'Неизвестно';
-    const chatLink = payload.link || payload.url || 'Нет ссылки';
+    // Извлечение данных на основе реальной структуры Thumbtack
+    const firstName = payload.data?.customer?.firstName || '';
+    const lastName = payload.data?.customer?.lastName || '';
+    const name = `${firstName} ${lastName}`.trim() || 'Неизвестно';
+    
+    const jobType = payload.data?.request?.category?.name || 'Неизвестно';
+    const city = payload.data?.request?.location?.city || '';
+    const state = payload.data?.request?.location?.state || '';
+    const location = `${city}, ${state}`.trim() || 'Неизвестно';
+    
+    const estimate = payload.data?.estimate?.total || 'Не указан';
+    const leadPrice = payload.data?.leadPrice || 'Не указана';
 
-    const text = `Новый лид Thumbtack!\nИмя: ${name}\nРабота: ${jobType}\nЛокация: ${location}\nЧат: ${chatLink}`;
-
-    console.log("2. Проверка CHAT_ID:", process.env.TELEGRAM_CHAT_ID);
-    console.log("3. Проверка TOKEN (начало):", process.env.TELEGRAM_BOT_TOKEN ? process.env.TELEGRAM_BOT_TOKEN.substring(0, 5) : 'ОТСУТСТВУЕТ');
+    const text = `Новый лид Thumbtack!\nИмя: ${name}\nРабота: ${jobType}\nЛокация: ${location}\nОценка: ${estimate}\nСписано за лид: ${leadPrice}`;
 
     const telegramPayload = {
       chat_id: process.env.TELEGRAM_CHAT_ID,
       text: text
     };
 
-    
     const telegramUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
 
     const response = await fetch(telegramUrl, {
@@ -31,11 +34,9 @@ export default async function handler(req, res) {
       body: JSON.stringify(telegramPayload)
     });
 
-    const errorData = await response.json();
-    console.log("4. Ответ от Telegram:", JSON.stringify(errorData));
-
     if (!response.ok) {
-      throw new Error(errorData.description || 'Unknown Telegram Error');
+      const errorData = await response.json();
+      throw new Error(errorData.description || 'Telegram API Error');
     }
 
     res.status(200).json({ success: true });
