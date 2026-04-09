@@ -22,6 +22,7 @@ export default async function handler(req, res) {
       text: text
     };
 
+    
     const telegramUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
 
     const response = await fetch(telegramUrl, {
